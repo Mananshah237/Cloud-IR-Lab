@@ -1,0 +1,82 @@
+[
+  {
+    "eventTime": "2023-10-27T10:00:00+00:00",
+    "eventName": "ListUsers",
+    "eventSource": "iam.amazonaws.com",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "203.0.113.xxx",
+    "userAgent": "Boto3/1.28.63 Python/3.9.13 Linux/5.15.0-1048-aws",
+    "errorCode": null,
+    "errorMessage": null,
+    "resources": [],
+    "recipientAccountId": "000000000000",
+    "userIdentityArn": "arn:aws:iam::000000000000:user/ir-lab-suspect"
+  },
+  {
+    "eventTime": "2023-10-27T10:00:02+00:00",
+    "eventName": "ListRoles",
+    "eventSource": "iam.amazonaws.com",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "203.0.113.xxx",
+    "userAgent": "Boto3/1.28.63 Python/3.9.13 Linux/5.15.0-1048-aws",
+    "errorCode": null,
+    "errorMessage": null,
+    "resources": [],
+    "recipientAccountId": "000000000000",
+    "userIdentityArn": "arn:aws:iam::000000000000:user/ir-lab-suspect"
+  },
+  {
+    "eventTime": "2023-10-27T10:00:05+00:00",
+    "eventName": "ListBuckets",
+    "eventSource": "s3.amazonaws.com",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "203.0.113.xxx",
+    "userAgent": "Boto3/1.28.63 Python/3.9.13 Linux/5.15.0-1048-aws",
+    "errorCode": null,
+    "errorMessage": null,
+    "resources": [],
+    "recipientAccountId": "000000000000",
+    "userIdentityArn": "arn:aws:iam::000000000000:user/ir-lab-suspect"
+  },
+  {
+    "eventTime": "2023-10-27T10:00:08+00:00",
+    "eventName": "GetObject",
+    "eventSource": "s3.amazonaws.com",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "203.0.113.xxx",
+    "userAgent": "Boto3/1.28.63 Python/3.9.13 Linux/5.15.0-1048-aws",
+    "errorCode": "AccessDenied",
+    "errorMessage": "Access Denied",
+    "resources": [
+      {
+        "type": "AWS::S3::Object",
+        "ARN": "arn:aws:s3:::cloud-ir-lab-testdata-12345/canary.txt"
+      },
+      {
+        "type": "AWS::S3::Bucket",
+        "ARN": "arn:aws:s3:::cloud-ir-lab-testdata-12345"
+      }
+    ],
+    "recipientAccountId": "000000000000",
+    "userIdentityArn": "arn:aws:iam::000000000000:user/ir-lab-suspect"
+  },
+  {
+    "eventTime": "2023-10-27T10:00:12+00:00",
+    "eventName": "CreateUser",
+    "eventSource": "iam.amazonaws.com",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "203.0.113.xxx",
+    "userAgent": "Boto3/1.28.63 Python/3.9.13 Linux/5.15.0-1048-aws",
+    "errorCode": "AccessDenied",
+    "errorMessage": "User: arn:aws:iam::000000000000:user/ir-lab-suspect is not authorized to perform: iam:CreateUser on resource: arn:aws:iam::000000000000:user/evil-backdoor-user because no identity-based policy allows the iam:CreateUser action",
+    "resources": [
+      {
+        "accountId": "000000000000",
+        "type": "user",
+        "ARN": "arn:aws:iam::000000000000:user/evil-backdoor-user"
+      }
+    ],
+    "recipientAccountId": "000000000000",
+    "userIdentityArn": "arn:aws:iam::000000000000:user/ir-lab-suspect"
+  }
+]

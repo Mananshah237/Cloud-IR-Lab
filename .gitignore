@@ -1,0 +1,12 @@
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+*.temp
+cases/
+# Do not ignore sample-output/, but do not commit secrets there (redacted only)

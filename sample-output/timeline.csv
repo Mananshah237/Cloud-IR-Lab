@@ -1,0 +1,6 @@
+time,eventSource,eventName,region,ip,userAgent,errorCode,identityArn
+2023-10-27T10:00:00+00:00,iam.amazonaws.com,ListUsers,us-east-1,203.0.113.xxx,Boto3/1.28.63 Python/3.9.13 Linux/5.15.0-1048-aws,,arn:aws:iam::000000000000:user/ir-lab-suspect
+2023-10-27T10:00:02+00:00,iam.amazonaws.com,ListRoles,us-east-1,203.0.113.xxx,Boto3/1.28.63 Python/3.9.13 Linux/5.15.0-1048-aws,,arn:aws:iam::000000000000:user/ir-lab-suspect
+2023-10-27T10:00:05+00:00,s3.amazonaws.com,ListBuckets,us-east-1,203.0.113.xxx,Boto3/1.28.63 Python/3.9.13 Linux/5.15.0-1048-aws,,arn:aws:iam::000000000000:user/ir-lab-suspect
+2023-10-27T10:00:08+00:00,s3.amazonaws.com,GetObject,us-east-1,203.0.113.xxx,Boto3/1.28.63 Python/3.9.13 Linux/5.15.0-1048-aws,AccessDenied,arn:aws:iam::000000000000:user/ir-lab-suspect
+2023-10-27T10:00:12+00:00,iam.amazonaws.com,CreateUser,us-east-1,203.0.113.xxx,Boto3/1.28.63 Python/3.9.13 Linux/5.15.0-1048-aws,AccessDenied,arn:aws:iam::000000000000:user/ir-lab-suspect

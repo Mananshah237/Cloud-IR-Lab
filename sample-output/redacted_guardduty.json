@@ -1,0 +1,50 @@
+[
+  {
+    "type": "Recon:IAM/User/MaliciousIP",
+    "severity": 5.0,
+    "createdAt": "2023-10-27T10:15:00Z",
+    "updatedAt": "2023-10-27T10:15:00Z",
+    "resource": {
+      "AccessKeyDetails": {
+        "AccessKeyId": "AKIAXXXXXXXXXXXXYYYY",
+        "UserType": "IAMUser",
+        "UserName": "ir-lab-suspect"
+      }
+    },
+    "service": {
+      "Action": {
+        "ActionType": "AWS_API_CALL",
+        "AwsApiCallAction": {
+          "Api": "ListUsers",
+          "ServiceName": "iam.amazonaws.com",
+          "CallerType": "Remote IP"
+        }
+      }
+    },
+    "title": "API 'ListUsers' was invoked from a known malicious IP address."
+  },
+  {
+    "type": "UnauthorizedAccess:IAM/User/MaliciousIP",
+    "severity": 8.0,
+    "createdAt": "2023-10-27T10:16:00Z",
+    "updatedAt": "2023-10-27T10:16:00Z",
+    "resource": {
+      "AccessKeyDetails": {
+        "AccessKeyId": "AKIAXXXXXXXXXXXXYYYY",
+        "UserType": "IAMUser",
+        "UserName": "ir-lab-suspect"
+      }
+    },
+    "service": {
+      "Action": {
+        "ActionType": "AWS_API_CALL",
+        "AwsApiCallAction": {
+          "Api": "CreateUser",
+          "ServiceName": "iam.amazonaws.com",
+          "CallerType": "Remote IP"
+        }
+      }
+    },
+    "title": "API 'CreateUser' was invoked from a known malicious IP address."
+  }
+]
