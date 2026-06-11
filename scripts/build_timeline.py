@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 
 def build(infile, timeline_csv, timeline_md, iocs_md):
-    with open(infile, 'r') as f:
+    with open(infile, 'r', encoding='utf-8') as f:
         events = json.load(f)
 
     # Sort by time
@@ -14,7 +14,7 @@ def build(infile, timeline_csv, timeline_md, iocs_md):
     # 1. CSV
     headers = ['time', 'eventSource', 'eventName', 'region', 'ip', 'userAgent', 'errorCode', 'identityArn']
     
-    with open(timeline_csv, 'w', newline='') as csvfile:
+    with open(timeline_csv, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headers)
         for e in events:
@@ -31,7 +31,7 @@ def build(infile, timeline_csv, timeline_md, iocs_md):
     print(f"[*] Timeline CSV written to {timeline_csv}")
 
     # 2. Markdown
-    with open(timeline_md, 'w') as md:
+    with open(timeline_md, 'w', encoding='utf-8') as md:
         md.write("# Incident Timeline\n\n")
         md.write("| Time (UTC) | Action | Source | IP | Status |\n")
         md.write("|---|---|---|---|---|\n")
@@ -53,7 +53,7 @@ def build(infile, timeline_csv, timeline_md, iocs_md):
         if e.get('userIdentityArn'): principals.add(e.get('userIdentityArn'))
         if e.get('awsRegion'): regions.add(e.get('awsRegion'))
 
-    with open(iocs_md, 'w') as ioc:
+    with open(iocs_md, 'w', encoding='utf-8') as ioc:
         ioc.write("# Indicators of Compromise (IOCs)\n\n")
         
         ioc.write("## 1. Principals Involved\n")

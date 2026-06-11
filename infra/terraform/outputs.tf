@@ -14,3 +14,10 @@ output "suspect_access_key_id" {
   value = aws_iam_access_key.suspect_key.id
 }
 
+# Sensitive — retrieve with: terraform output -raw suspect_secret_access_key
+# Used to configure the `ir-lab-suspect` AWS CLI profile for the attack scripts.
+output "suspect_secret_access_key" {
+  value     = aws_iam_access_key.suspect_key.secret
+  sensitive = true
+}
+

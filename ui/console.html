@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Cloud-IR-Lab — Attack &amp; Forensics Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05080f; --bg2:#070b16;
+  --surface:rgba(17,24,42,.72); --surface-solid:#0e1422; --surface2:#141d31; --surface3:#1a2440;
+  --line:#212d49; --line2:#2d3b5e; --hair:rgba(255,255,255,.055);
+  --fg:#eef2fb; --muted:#93a3c4; --faint:#5f7099;
+  --accent:#39bdf8; --accent2:#7c8cf8; --accentglow:rgba(57,189,248,.35);
+  --crit:#fb3a5d; --high:#fb923c; --medium:#fbbf24; --low:#39bdf8; --info:#94a3b8; --ok:#2dd4a7;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.005em;overflow-x:hidden}
+
+/* ---------- ambient background ---------- */
+.bg-grid,.bg-glow,.bg-scan{position:fixed;inset:0;pointer-events:none;z-index:0}
+.bg-grid{background-image:linear-gradient(rgba(120,150,210,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(120,150,210,.045) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(1200px 760px at 50% -8%,#000 35%,transparent 78%)}
+.bg-glow{background:
+  radial-gradient(1100px 620px at 82% -14%,rgba(57,189,248,.16),transparent 60%),
+  radial-gradient(960px 640px at 4% -4%,rgba(124,140,248,.13),transparent 56%),
+  radial-gradient(700px 700px at 50% 120%,rgba(45,212,167,.06),transparent 60%);
+  animation:drift 22s ease-in-out infinite alternate}
+@keyframes drift{to{transform:translate3d(0,18px,0) scale(1.04)}}
+.bg-scan{background:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px);background-size:100% 3px;mix-blend-mode:overlay;opacity:.5}
+
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:26px 24px 90px}
+
+/* ---------- header ---------- */
+.head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{height:46px;width:46px;border-radius:13px;display:grid;place-items:center;position:relative;
+  background:linear-gradient(150deg,#39bdf8,#7c8cf8);color:#04121d;font-weight:800;font-size:15px;
+  font-family:'JetBrains Mono',monospace;letter-spacing:-.04em;
+  box-shadow:0 10px 30px -6px var(--accentglow),inset 0 1px 0 rgba(255,255,255,.4);}
+.logo::after{content:"";position:absolute;inset:0;border-radius:13px;border:1px solid rgba(255,255,255,.22)}
+h1{font-size:20px;margin:0;letter-spacing:-.02em;font-weight:700;display:flex;align-items:center;gap:9px}
+.h1tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.12em;color:var(--accent);
+  border:1px solid rgba(57,189,248,.3);background:rgba(57,189,248,.08);padding:2px 6px;border-radius:5px;transform:translateY(-1px)}
+.sub{color:var(--muted);font-size:12px;margin:3px 0 0;font-family:'JetBrains Mono',monospace;letter-spacing:.01em}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:11px;font-size:12px;font-weight:600;border:1px solid;font-family:'JetBrains Mono',monospace;letter-spacing:.01em;backdrop-filter:blur(8px)}
+.pill .dot{height:8px;width:8px;border-radius:50%;background:currentColor;box-shadow:0 0 10px currentColor;position:relative}
+.pill.up .dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid currentColor;animation:ping 1.8s ease-out infinite}
+@keyframes ping{0%{transform:scale(.6);opacity:.8}100%{transform:scale(2.4);opacity:0}}
+.up{color:var(--ok);background:rgba(45,212,167,.1);border-color:rgba(45,212,167,.34)}
+.down{color:var(--faint);background:rgba(93,110,147,.1);border-color:rgba(93,110,147,.3)}
+.demo-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--medium);
+  border:1px solid rgba(251,191,36,.34);background:rgba(251,191,36,.09);padding:3px 7px;border-radius:6px;margin-left:9px}
+
+/* ---------- tabs ---------- */
+.tabs{display:inline-flex;gap:4px;margin-bottom:22px;padding:4px;border:1px solid var(--line);border-radius:13px;
+  background:var(--surface);backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 var(--hair)}
+.tab{position:relative;padding:9px 18px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-radius:9px;
+  transition:color .18s,background .18s;display:flex;align-items:center;gap:8px;user-select:none}
+.tab:hover{color:var(--fg)}
+.tab.active{color:#04121d;background:linear-gradient(180deg,#56c8fa,#39bdf8);box-shadow:0 6px 18px -6px var(--accentglow),inset 0 1px 0 rgba(255,255,255,.4)}
+.tab .tcount{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;
+  background:rgba(124,140,248,.16);color:var(--accent2);border:1px solid rgba(124,140,248,.3)}
+.tab.active .tcount{background:rgba(4,18,29,.18);color:#04121d;border-color:rgba(4,18,29,.25)}
+
+/* ---------- cards / bars ---------- */
+.card{background:var(--surface);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:18px;
+  box-shadow:inset 0 1px 0 var(--hair),0 18px 40px -28px rgba(0,0,0,.9)}
+.bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;padding:17px 20px;margin-bottom:16px;position:relative;overflow:hidden}
+.bar::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--accent),var(--accent2))}
+.bar .blabel{font-weight:700;font-size:14px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.bar .note{font-size:12px;color:var(--muted);margin-top:3px;max-width:62ch;line-height:1.5}
+.bar .note b{color:var(--fg);font-weight:600}
+.kx{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase}
+
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+
+/* ---------- attack cards ---------- */
+.atk{padding:20px;display:flex;flex-direction:column;gap:5px;position:relative;overflow:hidden;
+  transition:transform .2s cubic-bezier(.2,.7,.3,1),border-color .2s,box-shadow .2s}
+.atk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac,var(--accent));opacity:.85;transition:width .2s}
+.atk::after{content:"";position:absolute;inset:0;background:radial-gradient(360px 180px at 12% -10%,color-mix(in srgb,var(--ac,var(--accent)) 16%,transparent),transparent 70%);opacity:0;transition:opacity .25s;pointer-events:none}
+.atk:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--ac,var(--accent)) 45%,var(--line));box-shadow:inset 0 1px 0 var(--hair),0 26px 50px -30px var(--ac,#000)}
+.atk:hover::before{width:4px}
+.atk:hover::after{opacity:1}
+.atk .ic{height:40px;width:40px;border-radius:11px;display:grid;place-items:center;margin-bottom:8px;
+  background:color-mix(in srgb,var(--ac,var(--accent)) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--ac,var(--accent)) 32%,transparent);color:var(--ac,var(--accent))}
+.atk .ic svg{width:21px;height:21px;display:block}
+.atk h3{margin:0;font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+.atk .mitre{font-family:'JetBrains Mono',monospace;font-size:10px;color:color-mix(in srgb,var(--ac,var(--accent)) 72%,var(--faint));letter-spacing:.04em;margin-top:1px}
+.atk p{margin:7px 0 14px;font-size:12.5px;color:var(--muted);line-height:1.55;flex:1}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:11px;padding:10px 16px;
+  font-size:13px;font-weight:700;cursor:pointer;transition:transform .12s,box-shadow .18s,opacity .18s,background .18s;
+  font-family:inherit;letter-spacing:-.01em;position:relative;white-space:nowrap}
+.btn svg{width:15px;height:15px}
+.btn:disabled{opacity:.38;cursor:not-allowed;filter:saturate(.5)}
+.btn:not(:disabled):active{transform:translateY(1px)}
+.btn-run{background:linear-gradient(180deg,#56c8fa,#1aa9ef);color:#04121d;align-self:flex-start;box-shadow:0 8px 22px -10px var(--accentglow),inset 0 1px 0 rgba(255,255,255,.45)}
+.btn-run:hover:not(:disabled){box-shadow:0 12px 28px -8px var(--accentglow),inset 0 1px 0 rgba(255,255,255,.5)}
+.btn-prov{background:linear-gradient(180deg,#38e3b3,#13b88a);color:#03130d;box-shadow:0 8px 22px -10px rgba(45,212,167,.45),inset 0 1px 0 rgba(255,255,255,.4)}
+.btn-prov:hover:not(:disabled){box-shadow:0 12px 30px -8px rgba(45,212,167,.5)}
+.btn-dz{background:rgba(251,58,93,.1);color:#ff6b85;border:1px solid rgba(251,58,93,.4)}
+.btn-dz:hover:not(:disabled){background:rgba(251,58,93,.18);box-shadow:0 10px 26px -12px rgba(251,58,93,.5)}
+.btn-an{background:linear-gradient(180deg,#8b97fb,#5b67ef);color:#fff;box-shadow:0 8px 22px -10px rgba(124,140,248,.5),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn-an:hover:not(:disabled){box-shadow:0 12px 30px -8px rgba(124,140,248,.55)}
+.spin{height:14px;width:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---------- terminal ---------- */
+.term-wrap{margin-top:18px;border-radius:16px;box-shadow:0 30px 70px -40px rgba(0,0,0,.95)}
+.term-head{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border:1px solid var(--line);border-bottom:none;
+  border-radius:16px 16px 0 0;background:linear-gradient(180deg,#16203a,#111829);font-size:12px;position:relative;overflow:hidden}
+.term-head .lbl{display:flex;align-items:center;gap:11px;font-weight:600;font-family:'JetBrains Mono',monospace;letter-spacing:.02em;color:var(--muted)}
+.tl-dots{display:flex;gap:7px}.tl-dots i{height:11px;width:11px;border-radius:50%;display:block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.runbar{position:absolute;left:0;bottom:0;height:2px;width:0;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0}
+.runbar.on{opacity:1;animation:sweep 1.2s linear infinite}
+@keyframes sweep{0%{left:-40%;width:40%}100%{left:100%;width:40%}}
+.term{background:radial-gradient(120% 100% at 50% 0,#070b15,#04070d);border:1px solid var(--line);border-radius:0 0 16px 16px;
+  padding:16px 18px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7;height:360px;overflow:auto;
+  white-space:pre-wrap;word-break:break-word;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.term::-webkit-scrollbar{width:9px}.term::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px;border:2px solid transparent;background-clip:content-box}
+.term > div{animation:linein .2s ease}
+@keyframes linein{from{transform:translateX(-6px)}to{transform:none}}
+.l-cmd{color:#7dd3fc;font-weight:600}.l-cmd::before{content:"";color:var(--faint)}
+.l-ok{color:#3ee6b6}.l-warn{color:var(--medium)}.l-deny{color:#ff6b85;font-weight:500}
+.l-head{color:#c4b5fd;font-weight:700;letter-spacing:.02em}.l-dim{color:var(--faint)}
+.idle{color:var(--faint);font-style:italic}
+.caret{display:inline-block;width:8px;height:15px;background:var(--accent);box-shadow:0 0 8px var(--accentglow);
+  vertical-align:-2px;animation:blink 1s steps(1) infinite;border-radius:1px}
+@keyframes blink{50%{opacity:0}}
+.statusline{display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px}
+
+/* ---------- forensics ---------- */
+.fhint{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);letter-spacing:.02em;margin:-6px 0 14px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{padding:17px 18px;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--sc,var(--accent));opacity:.85}
+.stat .k{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--faint);font-weight:700;font-family:'JetBrains Mono',monospace}
+.stat .v{font-size:34px;font-weight:700;margin-top:8px;font-family:'JetBrains Mono',monospace;letter-spacing:-.02em;line-height:1}
+.stat .vsub{font-size:11px;color:var(--muted);margin-top:6px;font-family:'JetBrains Mono',monospace}
+
+.fgrid{display:grid;grid-template-columns:1.65fr 1fr;gap:16px}.fgrid>*{min-width:0}
+@media(max-width:900px){.fgrid{grid-template-columns:1fr}}
+.panel{padding:20px;min-width:0}
+.panel h2{font-size:11px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);margin:0 0 16px;font-weight:700;
+  font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:9px}
+.panel h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+
+/* kill-chain timeline */
+.tl{display:flex;flex-direction:column;position:relative;max-height:560px;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.tl::-webkit-scrollbar{width:9px}.tl::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px;border:2px solid transparent;background-clip:content-box}
+.ev{display:grid;grid-template-columns:22px 70px 1fr auto;gap:12px;align-items:start;padding:12px 4px;position:relative}
+.ev .rail{position:relative;display:flex;justify-content:center;padding-top:3px}
+.ev .rail::before{content:"";position:absolute;top:14px;bottom:-13px;width:2px;background:linear-gradient(180deg,var(--line2),var(--line));left:50%;transform:translateX(-50%)}
+.ev:last-child .rail::before{display:none}
+.ev .node{height:11px;width:11px;border-radius:50%;background:var(--nc,var(--faint));box-shadow:0 0 0 3px color-mix(in srgb,var(--nc,var(--faint)) 22%,transparent),0 0 10px color-mix(in srgb,var(--nc,var(--faint)) 60%,transparent);position:relative;z-index:1;margin-top:3px}
+.ev .t{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);padding-top:3px;white-space:nowrap}
+.ev .nm{font-weight:700;font-size:13.5px;letter-spacing:-.01em}
+.ev .sub{margin-top:3px;display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.ev .tac{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.02em;
+  background:rgba(124,140,248,.08);border:1px solid rgba(124,140,248,.16);padding:1.5px 7px;border-radius:6px}
+.ev .src{font-size:10.5px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.epill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700;border:1px solid;
+  font-family:'JetBrains Mono',monospace;white-space:nowrap;margin-top:2px}
+.allow{color:var(--ok);background:rgba(45,212,167,.1);border-color:rgba(45,212,167,.3)}
+.deny{color:#ff6b85;background:rgba(251,58,93,.1);border-color:rgba(251,58,93,.32)}
+.sev-critical{color:var(--crit)}.sev-high{color:var(--high)}.sev-medium{color:var(--medium)}.sev-low{color:var(--low)}.sev-info{color:var(--info)}
+
+/* detections */
+.det{display:flex;flex-direction:column;gap:8px;padding:13px 14px;border-radius:13px;background:rgba(20,29,49,.55);
+  border:1px solid var(--line);margin-bottom:9px;transition:border-color .18s}
+.det:hover{border-color:var(--line2)}
+.det .drow{display:flex;justify-content:space-between;align-items:center}
+.det b{font-size:13px;font-weight:600}.cnt{font-weight:700;font-size:17px;font-family:'JetBrains Mono',monospace}
+.dbar{height:5px;border-radius:4px;background:rgba(255,255,255,.05);overflow:hidden}
+.dbar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--high),#ffb86b);box-shadow:0 0 12px rgba(251,146,60,.5)}
+
+/* IOC */
+.ioc h3{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--faint);margin:16px 0 8px;font-family:'JetBrains Mono',monospace;font-weight:700}
+.ioc h3:first-child{margin-top:0}
+.chips{display:flex;flex-direction:column;gap:6px}
+.chip{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);
+  border:1px solid var(--line);border-radius:9px;padding:6px 10px;color:var(--muted);max-width:100%;overflow:hidden;transition:border-color .15s,color .15s}
+.chip:hover{border-color:var(--line2);color:var(--fg)}
+.chip .ctxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .cdot{height:6px;width:6px;border-radius:50%;background:var(--accent2);flex:none;box-shadow:0 0 7px var(--accent2)}
+.iocnone{color:var(--faint);font-size:11px;font-family:'JetBrains Mono',monospace}
+
+.empty{padding:64px 26px;text-align:center;color:var(--muted);line-height:1.7}
+.empty .eic{height:54px;width:54px;border-radius:14px;display:grid;place-items:center;margin:0 auto 16px;
+  background:var(--surface2);border:1px solid var(--line);color:var(--accent)}
+.empty b{color:var(--fg)}
+.empty code{background:var(--surface2);padding:3px 9px;border-radius:7px;color:var(--accent);font-family:'JetBrains Mono',monospace;border:1px solid var(--line)}
+.hidden{display:none}
+@keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head>
+<body>
+<div class="bg-grid"></div><div class="bg-glow"></div><div class="bg-scan"></div>
+<div class="wrap">
+  <div class="head">
+    <div class="brand"><div class="logo">IR</div>
+      <div><h1>Cloud-IR-Lab <span class="h1tag">v1.0</span></h1>
+      <p class="sub">AWS ATTACK &amp; FORENSICS CONSOLE</p></div></div>
+    <div id="status"><span class="pill down"><span class="dot"></span>checking…</span></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="console" onclick="switchTab('console')">Attack Console</div>
+    <div class="tab" data-tab="forensics" onclick="switchTab('forensics')">Forensics</div>
+  </div>
+
+  <!-- CONSOLE TAB -->
+  <div id="tab-console">
+    <div class="card bar">
+      <div>
+        <div class="blabel">Lab lifecycle <span class="kx">terraform</span></div>
+        <div class="note">GuardDuty stays <b>off</b> → every resource is free-tier (<b>$0</b>). Always run Destroy when finished.</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-prov" id="btn-provision" onclick="run('provision')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Provision</button>
+        <button class="btn btn-dz" id="btn-destroy" onclick="run('destroy')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/></svg>Destroy</button>
+      </div>
+    </div>
+
+    <div class="grid" id="attacks"></div>
+
+    <div class="card bar" style="margin-top:16px">
+      <div>
+        <div class="blabel">Detection &amp; forensics <span class="kx">cloudtrail</span></div>
+        <div class="note">Query CloudTrail for IOCs, then build the redacted SOC timeline (<b>cases/CASE-001</b>).</div>
+      </div>
+      <button class="btn btn-an" id="btn-analyze" onclick="run('analyze')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"/></svg>Run Detection &amp; Timeline</button>
+    </div>
+
+    <div class="term-wrap">
+      <div class="term-head">
+        <span class="lbl"><span class="tl-dots"><i style="background:#fb3a5d"></i><i style="background:#fbbf24"></i><i style="background:#2dd4a7"></i></span> live · stdout</span>
+        <span id="term-status" class="l-dim statusline">idle</span>
+        <span class="runbar" id="runbar"></span>
+      </div>
+      <div class="term" id="term"><span class="idle">▸ Provision the lab, then launch a simulation to watch it execute live…</span></div>
+    </div>
+  </div>
+
+  <!-- FORENSICS TAB -->
+  <div id="tab-forensics" class="hidden"><div id="forensics"></div></div>
+</div>
+
+<script>
+/* ===== attack catalog (clean monoline glyphs) ===== */
+const ICON={
+  recon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  privesc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V7M6 13l6-6 6 6"/><path d="M7 4h10"/></svg>',
+  s3_exfil:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>',
+  lateral:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13M14 5l3 3-3 3"/><path d="M20 16H7M10 13l-3 3 3 3"/></svg>',
+  anti_forensics:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>',
+};
+const ATTACKS=[
+  {id:'recon',c:'#39bdf8',name:'Reconnaissance',mitre:'T1580 · Discovery',desc:'Enumerate IAM users, roles, buckets and EC2 — plus a couple of intentionally denied probes. Establishes baseline attacker telemetry.'},
+  {id:'privesc',c:'#fb923c',name:'IAM Privilege Escalation',mitre:'T1078.004 · T1098 · T1548',desc:'AssumeRole chaining, policy-version rollback, PassRole→Lambda and CreateLoginProfile persistence attempts.'},
+  {id:'s3_exfil',c:'#fbbf24',name:'S3 Data Exfiltration',mitre:'T1530 · T1537',desc:'Bucket enumeration, bulk GetObject download, and pre-signed-URL / cross-account replication exfil channels.'},
+  {id:'lateral',c:'#7c8cf8',name:'Lateral Movement',mitre:'T1021 · T1550',desc:'Cross-account AssumeRole pivots and SSM SendCommand / EC2 Instance Connect for remote execution.'},
+  {id:'anti_forensics',c:'#fb3a5d',name:'Anti-Forensics',mitre:'T1562.008 · T1070',desc:'StopLogging, DeleteTrail, PutEventSelectors and trail redirection to blind the CloudTrail pipeline.'},
+];
+let PROVISIONED=false, running=false, DEMO=false;
+
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function el(h){const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild}
+
+function renderAttacks(){
+  const g=document.getElementById('attacks'); g.innerHTML='';
+  ATTACKS.forEach(a=>g.append(el(`<div class="card atk" style="--ac:${a.c}">
+    <div class="ic">${ICON[a.id]||''}</div>
+    <h3>${a.name}</h3><div class="mitre">${a.mitre}</div>
+    <p>${a.desc}</p>
+    <button class="btn btn-run" data-atk="${a.id}" onclick="run('${a.id}')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>Run simulation</button>
+  </div>`)));
+  syncButtons();
+}
+function syncButtons(){
+  document.querySelectorAll('[data-atk]').forEach(b=>b.disabled=!PROVISIONED||running);
+  document.getElementById('btn-analyze').disabled=!PROVISIONED||running;
+  document.getElementById('btn-provision').disabled=running||PROVISIONED;
+  document.getElementById('btn-destroy').disabled=running||!PROVISIONED;
+}
+function renderStatus(prov,region){
+  document.getElementById('status').innerHTML = prov
+    ? `<span class="pill up"><span class="dot"></span>Lab provisioned · ${region||'us-east-1'}</span>${DEMO?'<span class="demo-chip">DEMO</span>':''}`
+    : `<span class="pill down"><span class="dot"></span>Not provisioned · ${region||'us-east-1'}</span>${DEMO?'<span class="demo-chip">DEMO</span>':''}`;
+}
+async function refreshStatus(){
+  if(DEMO){renderStatus(PROVISIONED,'us-east-1');syncButtons();return}
+  const s=await (await fetch('/api/status')).json();
+  PROVISIONED=s.provisioned;
+  renderStatus(s.provisioned,s.region);
+  updateTabCount();
+  syncButtons();
+}
+
+const TERM=()=>document.getElementById('term');
+function termClear(){TERM().innerHTML=''}
+function classify(t){
+  if(t.startsWith('$ '))return 'l-cmd';
+  if(/AccessDenied|Denied|\[!\]|✖|error|Error/.test(t))return 'l-deny';
+  if(/\[\+\]|Success|complete|✓/.test(t))return 'l-ok';
+  if(/=====|####|\[\*\]|MITRE|Attack|━━/.test(t))return 'l-head';
+  if(/exited with code|\[-\]/.test(t))return 'l-warn';
+  return '';
+}
+function termLine(t){
+  const term=TERM();
+  const car=term.querySelector('.caret'); if(car)car.parentElement.remove();
+  const ln=document.createElement('div'); ln.className=classify(t); ln.textContent=t;
+  term.append(ln);
+  if(running){const c=document.createElement('div');c.innerHTML='<span class="caret"></span>';term.append(c)}
+  term.scrollTop=term.scrollHeight;
+}
+function setRunning(on,label){
+  running=on; syncButtons();
+  document.getElementById('runbar').classList.toggle('on',on);
+  document.getElementById('term-status').innerHTML = on
+    ? `<span class="l-warn statusline"><span class="spin"></span> ${esc(label)} · running…</span>` : '<span class="l-dim">idle</span>';
+  if(!on){const term=TERM();const car=term.querySelector('.caret');if(car)car.parentElement.remove()}
+}
+
+async function run(action){
+  if(running)return;
+  if(TERM().querySelector('.idle'))termClear();
+  termLine(`$ launching: ${action}`);
+  setRunning(true, action);
+  if(DEMO){demoRun(action);return}
+  let job;
+  try{
+    const r=await fetch('/api/run/'+action,{method:'POST'});
+    if(!r.ok){const e=await r.json();termLine('[!] '+(e.detail||'failed to start'));setRunning(false);return}
+    job=(await r.json()).job;
+  }catch(e){termLine('[!] '+e);setRunning(false);return}
+
+  const es=new EventSource('/api/stream/'+job);
+  es.onmessage=(m)=>{
+    const d=JSON.parse(m.data);
+    if(d.line!==undefined)termLine(d.line);
+    if(d.status){
+      es.close();
+      termLine(d.status==='done'?'✓ finished: '+action:'✖ '+action+' '+d.status);
+      setRunning(false);
+      refreshStatus();
+      if(action==='analyze'){loadForensics();switchTab('forensics')}
+    }
+  };
+  es.onerror=()=>{es.close();setRunning(false);refreshStatus()};
+}
+
+function updateTabCount(){
+  const tab=document.querySelector('.tab[data-tab="forensics"]');
+  if(window.__caseEvents>0){
+    if(!tab.querySelector('.tcount'))tab.insertAdjacentHTML('beforeend',`<span class="tcount">${window.__caseEvents}</span>`);
+    else tab.querySelector('.tcount').textContent=window.__caseEvents;
+  }
+}
+
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
+  const c=document.getElementById('tab-console'),f=document.getElementById('tab-forensics');
+  c.classList.toggle('hidden',t!=='console');
+  f.classList.toggle('hidden',t!=='forensics');
+  // retrigger entrance animation
+  const shown=t==='console'?c:f; shown.style.animation='none'; void shown.offsetWidth; shown.style.animation='';
+  if(location.hash.slice(1)!==t)history.replaceState(null,'','#'+t);
+  if(t==='forensics')loadForensics();
+}
+
+function fmtTime(t){try{return new Date(t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}catch(e){return t}}
+const SEVC={critical:'#fb3a5d',high:'#fb923c',medium:'#fbbf24',low:'#39bdf8',info:'#94a3b8'};
+async function loadForensics(){
+  const d=DEMO?DEMO_CASE:await (await fetch('/api/case')).json();
+  const f=document.getElementById('forensics');
+  if(d.empty){
+    f.innerHTML=`<div class="card empty"><div class="eic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/></svg></div>No case data yet.<br><br>Run an attack, then <b>Run Detection &amp; Timeline</b> — the redacted kill-chain appears here.</div>`;
+    return;
+  }
+  window.__caseEvents=d.stats.events; updateTabCount();
+  const s=d.stats, worst=s.severities.critical?'critical':(s.severities.high?'high':(s.severities.medium?'medium':'low'));
+  const sevWord=s.severities.critical?'CRITICAL':(s.severities.high?'HIGH':(s.severities.medium?'MEDIUM':'LOW'));
+  const stat=(k,v,sc,sub)=>`<div class="card stat" style="--sc:${sc||'var(--accent)'}"><div class="k">${k}</div><div class="v" style="${sc?'color:'+sc:''}">${v}</div>${sub?`<div class="vsub">${sub}</div>`:''}</div>`;
+
+  const tl=d.timeline.map(e=>{
+    const nc=SEVC[e.severity]||'#5f7099';
+    const tac=(e.tactic!=='Reconnaissance'&&e.tactic!=='Other')?esc(e.tactic)+' · '+esc(e.mitre):'';
+    return `<div class="ev" style="--nc:${nc}">
+      <div class="rail"><span class="node"></span></div>
+      <div class="t">${fmtTime(e.time)}</div>
+      <div><div class="nm sev-${e.severity}">${esc(e.event)}</div>
+        <div class="sub">${tac?`<span class="tac">${tac}</span>`:''}<span class="src">${esc(e.source||'')}</span>${e.ip?`<span class="src">· ${esc(e.ip)}</span>`:''}</div></div>
+      <div>${e.allowed?'<span class="epill allow">allowed</span>':'<span class="epill deny">'+esc(e.errorCode||'denied')+'</span>'}</div></div>`;
+  }).join('');
+
+  const maxc=Math.max(1,...d.tactics.map(t=>t.count));
+  const dets=d.tactics.length?d.tactics.map(t=>`<div class="det"><div class="drow"><b>${esc(t.name)}</b><span class="cnt sev-high">${t.count}</span></div><div class="dbar"><i style="width:${Math.round(t.count/maxc*100)}%"></i></div></div>`).join(''):'<p style="color:var(--muted);font-size:13px">No attack-tactic detections.</p>';
+
+  const ioc=(title,arr,max)=>`<h3>${title}</h3>`+(arr&&arr.length?`<div class="chips">`+arr.slice(0,max||50).map(x=>`<span class="chip" title="${esc(x)}"><span class="cdot"></span><span class="ctxt">${esc(x)}</span></span>`).join('')+`</div>`:'<span class="iocnone">none observed</span>');
+
+  f.innerHTML='';
+  f.append(el(`<div class="fhint">case ${esc(d.case||'CASE-001')} · redacted SOC export</div>`));
+  f.append(el(`<div class="stats">
+    ${stat('Events',s.events,'var(--accent)',(s.allowed||0)+' allowed')}
+    ${stat('Denied attempts',s.denied,'#fb3a5d','blocked by IAM')}
+    ${stat('Detections',s.detections,'#fb923c','tactics flagged')}
+    ${stat('Severity',sevWord,SEVC[worst],'peak observed')}</div>`));
+  f.append(el(`<div class="fgrid">
+    <div class="card panel"><h2>Kill-chain timeline</h2><div class="tl">${tl}</div></div>
+    <div><div class="card panel" style="margin-bottom:16px"><h2>Detections by tactic</h2>${dets}</div>
+      <div class="card panel ioc"><h2>Indicators of compromise</h2>
+        ${ioc('Principals',d.iocs.principals)}${ioc('Source IPs',d.iocs.ips)}${ioc('Regions',d.iocs.regions)}${ioc('User agents',d.iocs.userAgents,6)}</div></div>
+  </div>`));
+}
+
+/* ============================================================
+   OFFLINE DEMO FALLBACK
+   Activates ONLY when /api/status is unreachable (e.g. static
+   preview with no FastAPI backend). The production path above
+   is untouched — real fetch + EventSource run when DEMO=false.
+   ============================================================ */
+const DEMO_STREAMS={
+  provision:['━━━ terraform · provisioning misconfigured lab ━━━','$ terraform init','[+] initialized backend (local)','$ terraform apply -auto-approve','aws_iam_user.suspect: Creating...','aws_s3_bucket.testdata: Creating...','aws_cloudtrail.audit: Creating...','[+] aws_iam_user.suspect: Creation complete','[+] aws_s3_bucket.testdata: cloud-ir-lab-testdata-7f3a9c','[+] aws_cloudtrail.audit: Creation complete','[*] GuardDuty: disabled (free-tier, $0)','✓ apply complete · 9 added, 0 changed, 0 destroyed'],
+  recon:['━━━ MITRE T1580 · Reconnaissance ━━━','$ aws iam list-users','[+] 3 users  (admin, ci-deploy, ir-lab-suspect)','$ aws s3 ls','[+] cloud-ir-lab-testdata-7f3a9c','$ aws ec2 describe-instances','[+] 2 instances enumerated','$ aws iam list-attached-user-policies --user-name admin','AccessDenied: not authorized to perform iam:ListAttachedUserPolicies','$ aws organizations describe-organization','AccessDenied: not authorized to perform organizations:DescribeOrganization','[*] baseline telemetry captured → 7 events','✓ recon complete'],
+  privesc:['━━━ MITRE T1078.004 · Privilege Escalation ━━━','$ aws sts assume-role --role-arn arn:aws:iam::000000000000:role/admin-break-glass','AccessDenied: User is not authorized to perform: sts:AssumeRole','$ aws iam create-policy-version --policy-arn ...AdminAccess --set-as-default','[+] policy version v4 set as default','$ aws iam pass-role + lambda:CreateFunction','AccessDenied: iam:PassRole on arn:.../lambda-exec','$ aws iam create-login-profile --user-name ci-deploy','[+] login profile created for ci-deploy','[!] escalation path partially blocked','✓ privesc complete'],
+  s3_exfil:['━━━ MITRE T1530 · S3 Data Exfiltration ━━━','$ aws s3api list-objects --bucket cloud-ir-lab-testdata-7f3a9c','[+] 412 objects enumerated','$ aws s3 cp s3://...testdata/ ./loot --recursive','[+] downloaded 318 objects (1.2 GB)','$ aws s3 presign s3://...testdata/customers.csv --expires-in 604800','[+] pre-signed URL generated (7d)','$ aws s3api put-bucket-replication --bucket ...testdata','AccessDenied: s3:PutReplicationConfiguration','✓ s3_exfil complete'],
+  lateral:['━━━ MITRE T1021 · Lateral Movement ━━━','$ aws sts assume-role --role-arn arn:aws:iam::111111111111:role/cross-acct','[+] assumed cross-acct role (900s)','$ aws ssm send-command --document AWS-RunShellScript','AccessDenied: ssm:SendCommand on i-0a1b2c3d','$ aws ec2-instance-connect send-ssh-public-key','[+] pushed ephemeral key to i-0a1b2c3d','[*] pivot established','✓ lateral complete'],
+  anti_forensics:['━━━ MITRE T1562.008 · Anti-Forensics ━━━','$ aws cloudtrail stop-logging --name audit','[+] logging stopped on trail: audit','$ aws cloudtrail put-event-selectors --name audit','[+] data events removed from selector','$ aws cloudtrail delete-trail --name audit','AccessDenied: cloudtrail:DeleteTrail (SCP guardrail)','[!] trail blinded but not deleted','✓ anti_forensics complete'],
+  analyze:['━━━ Detection · querying CloudTrail ━━━','$ aws cloudtrail lookup-events --max-results 50','[+] 7 events ingested','[*] correlating principals, IPs, user-agents','[+] 5 tactics flagged · 5 denied','[*] redacting PII → cases/CASE-001','✓ analyze complete'],
+  destroy:['━━━ terraform · destroying lab ━━━','$ terraform destroy -auto-approve','aws_cloudtrail.audit: Destroying...','aws_s3_bucket.testdata: Destroying...','aws_iam_user.suspect: Destroying...','[+] destroy complete · 0 added, 0 changed, 9 destroyed','✓ lab torn down · $0 billed'],
+};
+const DEMO_CASE={
+  case:'CASE-001',
+  stats:{events:7,denied:5,allowed:2,detections:5,severities:{critical:0,high:4,medium:0,low:1,info:2}},
+  tactics:[{name:'Privilege Escalation',count:3},{name:'Anti-Forensics',count:2},{name:'Data Exfiltration',count:1},{name:'Lateral Movement',count:1}],
+  timeline:[
+    {time:'2026-06-11T04:19:14Z',event:'AssumeRole',source:'sts.amazonaws.com',tactic:'Privilege Escalation',mitre:'T1078.004',severity:'high',allowed:false,errorCode:'AccessDenied',ip:'99.100.98.xxx'},
+    {time:'2026-06-11T04:19:51Z',event:'CreatePolicyVersion',source:'iam.amazonaws.com',tactic:'Privilege Escalation',mitre:'T1098',severity:'high',allowed:true,ip:'99.100.98.xxx'},
+    {time:'2026-06-11T04:20:33Z',event:'PassRole',source:'iam.amazonaws.com',tactic:'Privilege Escalation',mitre:'T1548',severity:'high',allowed:false,errorCode:'AccessDenied',ip:'99.100.98.xxx'},
+    {time:'2026-06-11T04:22:07Z',event:'GetObject ×318',source:'s3.amazonaws.com',tactic:'Data Exfiltration',mitre:'T1530',severity:'high',allowed:true,ip:'99.100.98.xxx'},
+    {time:'2026-06-11T04:23:40Z',event:'SendCommand',source:'ssm.amazonaws.com',tactic:'Lateral Movement',mitre:'T1021',severity:'low',allowed:false,errorCode:'AccessDenied',ip:'45.12.33.xxx'},
+    {time:'2026-06-11T04:25:12Z',event:'StopLogging',source:'cloudtrail.amazonaws.com',tactic:'Anti-Forensics',mitre:'T1562.008',severity:'info',allowed:true,ip:'45.12.33.xxx'},
+    {time:'2026-06-11T04:25:48Z',event:'DeleteTrail',source:'cloudtrail.amazonaws.com',tactic:'Anti-Forensics',mitre:'T1070',severity:'info',allowed:false,errorCode:'AccessDenied',ip:'45.12.33.xxx'},
+  ],
+  iocs:{
+    principals:['arn:aws:iam::000000000000:user/ir-lab-suspect','arn:aws:iam::000000000000:role/ci-deploy'],
+    ips:['99.100.98.xxx','45.12.33.xxx'],
+    regions:['us-east-1'],
+    userAgents:['Boto3/1.43.27 md/Botocore#1.43.27 ua/2.1 os/windows#10 lang/python#3.12','aws-cli/2.15.4 Python/3.11 exec-env/CLI'],
+  },
+};
+function demoRun(action){
+  const lines=(DEMO_STREAMS[action]||['(no demo stream for '+action+')']).slice();
+  let i=0;
+  (function tick(){
+    if(i<lines.length){
+      termLine(lines[i++]);
+      setTimeout(tick, 160+Math.random()*180);
+    }else{
+      termLine('✓ finished: '+action);
+      setRunning(false);
+      if(action==='provision'){PROVISIONED=true;refreshStatus()}
+      else if(action==='destroy'){PROVISIONED=false;refreshStatus()}
+      if(action==='analyze'){loadForensics();switchTab('forensics')}
+    }
+  })();
+}
+
+/* ===== boot ===== */
+async function boot(){
+  try{
+    await refreshStatus();
+  }catch(e){
+    DEMO=true; PROVISIONED=true;            // explore-everything offline mode
+    window.__caseEvents=DEMO_CASE.stats.events;
+    renderStatus(true,'us-east-1'); updateTabCount(); syncButtons();
+    const t=TERM(); if(t.querySelector('.idle'))t.firstElementChild.textContent='▸ Offline demo — backend not reachable. Streams & forensics are simulated.';
+  }
+}
+renderAttacks(); boot();
+if(location.hash==='#forensics')switchTab('forensics');
+</script>
+</body></html>

@@ -147,6 +147,42 @@ The forensic pipeline produces:
 - **Incident Report** (`docs/REPORT.md`): Structured writeup covering scope, impact, root cause, and remediation recommendations.
 - **Redaction**: `collect_evidence.py` automatically redacts Account IDs and full Access Keys before saving to `sample-output/`.
 
+## Attack & Forensics Console (web UI)
+
+A local web console (`ui/app.py`) drives the whole lab from the browser:
+
+- **Lab lifecycle** — Provision / Destroy buttons (GuardDuty stays off → **$0**).
+- **Five simulation cards** — Reconnaissance, IAM Privilege Escalation, S3 Data
+  Exfiltration, Lateral Movement, Anti-Forensics — each launches the real boto3 script
+  and **streams its output live** into an in-browser terminal, so you watch every API
+  call (and every `AccessDenied`) as it happens.
+- **Detection & timeline** — one click runs the four detection scripts + evidence
+  collection + timeline build.
+- **Forensics tab** — SOC-style incident view: kill-chain timeline (allowed vs.
+  `AccessDenied`), detections by MITRE tactic, IOC panel, and severity stats.
+
+```bash
+pip install -r ui/requirements.txt
+uvicorn ui.app:app --port 8003        # open http://localhost:8003
+```
+
+Runs on port **8003** alongside the other project demos (VEXIS 3000/8000,
+AegisScan 3001/8001, PhishNet 3002/8002). It resolves `terraform`/`aws` automatically
+(including winget install locations) and uses the `admin` profile for lifecycle/detection
+and the auto-created `ir-lab-suspect` profile for attacks. Everything it does is also
+available headless via `run_lab.ps1`.
+
+## One-command runner
+
+`run_lab.ps1` wraps the whole cycle:
+
+```powershell
+./run_lab.ps1 all        # provision -> attack -> detect -> forensic timeline (GuardDuty stays off, $0)
+./run_lab.ps1 destroy    # tear everything down -> back to $0
+```
+
+Individual phases: `provision`, `attack`, `analyze`, `destroy`.
+
 ## Documentation
 
 | Document | Description |
@@ -160,9 +196,36 @@ The forensic pipeline produces:
 
 All operations use legitimate AWS APIs (boto3) — no third-party exploit tools required. This demonstrates that real cloud attacks are API calls, not malware. The most dangerous cloud threats are misconfigurations exploited through standard interfaces.
 
-- **Terraform Lifecycle**: All infrastructure is managed by Terraform. Run `terraform destroy` to remove everything.
-- **Cost Control**: S3 buckets use 30-day lifecycle policies. CloudTrail uses standard (free-tier) event logging. Destroy resources when not actively testing.
-- **Credential Safety**: Suspect access keys are created manually, never stored in Terraform state or logs. The `redact.py` script sanitizes output artifacts.
+- **$0 by design.** Every resource the lab provisions is free-tier eligible: the first CloudTrail trail's **management events are free**, IAM users/keys/policies are always free, and the two S3 buckets hold a few KB with a 30-day lifecycle. **GuardDuty is the only resource that can ever bill**, so it is now **opt-in and disabled by default** (`var.enable_guardduty = false`). Enable it only deliberately with `terraform apply -var enable_guardduty=true`.
+- **Detection needs no paid infrastructure.** The detection and forensic scripts read CloudTrail via `LookupEvents`, which queries **CloudTrail Event History** — always on, free, and retained 90 days **independent of any trail or S3 bucket**. You can `terraform destroy` the trail/buckets and still build a real timeline from Event History.
+- **Terraform Lifecycle**: All infrastructure is managed by Terraform. Run `terraform destroy` to remove everything; verify with `aws s3 ls`, `aws iam get-user --user-name ir-lab-suspect`, `aws cloudtrail list-trails`, and `aws guardduty list-detectors`.
+- **Credential Safety**: The `redact.py` script sanitizes Account IDs, IPs, and access keys in output artifacts. The suspect secret key is available via `terraform output -raw suspect_secret_access_key` (sensitive) for configuring the `ir-lab-suspect` profile.
+
+### Recent fixes (so it actually runs)
+
+- **`infra/terraform/main.tf`** — fixed a malformed data source (`data.aws_iam_policy_document "..."` → `data "aws_iam_policy_document" "..."`) that prevented `terraform apply` from parsing; added the `filter {}` block now required by AWS provider v5 lifecycle rules; made GuardDuty opt-in.
+- **`outputs.tf`** — added a sensitive `suspect_secret_access_key` output so the attack profile can be configured straight from Terraform.
+- **`scripts/detect/detect_lateral.py`** — fixed an `AttributeError` crash when CloudTrail records `requestParameters`/`userIdentity` as JSON `null`.
+- **`scripts/build_timeline.py`** — fixed a `UnicodeEncodeError` on Windows by writing all report files as UTF-8 (the timeline uses ✅/❌ status glyphs).
+
+### Verified run (real telemetry, locked-down suspect)
+
+Against a freshly provisioned lab, the suspect profile ran recon (allowed) plus privesc/exfil/anti-forensics attempts (denied by the intentionally restrictive policy). The pipeline produced real artifacts in `cases/CASE-001/`:
+
+- **detect_privesc**: 7 indicators (4 × `AssumeRole`, 3 × IAM policy events)
+- **detect_exfil**: 3 indicators (S3 bucket enumeration)
+- **detect_anti_forensics**: 2 indicators incl. `ANTIFOR-001 [CRITICAL]` (CloudTrail `StopLogging` attempt)
+- **timeline.md / iocs.md**: full chronological kill chain + redacted IOCs (principal, source IP, user agents, regions)
+
+> Denied attempts are not a failure — `errorCode: AccessDenied` events are exactly the high-signal telemetry a SOC alerts on, and keeping the suspect locked down means the lab never creates a real working backdoor in your account.
+
+## Optimization & improvement roadmap
+
+1. **One-shot orchestrator.** Add a `scripts/run_lab.sh` that runs apply → configure suspect profile from outputs → attacks → detection → `collect_evidence` → `build_timeline` → (optional) destroy, with a single time window computed automatically.
+2. **EC2/SSM targets for lateral movement.** `main.tf` provisions no EC2 instance, so `lateral_movement.py` has nothing to pivot to. Add an optional `t3.micro` (free-tier) + SSM role behind a variable to exercise `SendCommand`/`SendSSHPublicKey`.
+3. **Generate `docs/REPORT.md` automatically** from the detection JSON + timeline, instead of keeping it as a manual template.
+4. **Tag every resource** (`tags = { project = "cloud-ir-lab" }`) for trivial cost tracking and cleanup verification.
+5. **CI lint.** Run `terraform validate` + `flake8`/`ruff` on the scripts in GitHub Actions to catch syntax regressions like the ones fixed above.
 
 ## Requirements
 

@@ -9,4 +9,14 @@ __pycache__/
 venv/
 *.temp
 cases/
+.tftmp/
+# Raw detection output (may contain unredacted CloudTrail data) and scratch files
+detect_*_findings.json
+exfil-output/
+_*.png
 # Do not ignore sample-output/, but do not commit secrets there (redacted only)
+
+# Local tooling — never commit
+.claude/
+CLAUDE.md
+claude.md

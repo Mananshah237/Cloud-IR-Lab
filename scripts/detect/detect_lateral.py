@@ -56,8 +56,10 @@ def default_serializer(obj):
 
 def _is_cross_account(detail):
     """Check if an AssumeRole event crosses account boundaries."""
-    caller_account = detail.get('userIdentity', {}).get('accountId')
-    req_params = detail.get('requestParameters', {})
+    # CloudTrail records these fields as JSON null for many events, so a plain
+    # .get(key, {}) returns None (not the default). Coerce with `or {}`.
+    caller_account = (detail.get('userIdentity') or {}).get('accountId')
+    req_params = detail.get('requestParameters') or {}
     role_arn = req_params.get('roleArn', '')
 
     if not caller_account or not role_arn:

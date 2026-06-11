@@ -43,6 +43,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "log_bucket_lifecycle" {
     id     = "expire_logs"
     status = "Enabled"
 
+    # Apply to all objects in the bucket (required by AWS provider v5+).
+    filter {}
+
     expiration {
       days = 30
     }
@@ -55,7 +58,7 @@ resource "aws_s3_bucket_policy" "log_bucket_policy" {
   policy = data.aws_iam_policy_document.log_bucket_policy.json
 }
 
-data.aws_iam_policy_document "log_bucket_policy" {
+data "aws_iam_policy_document" "log_bucket_policy" {
   statement {
     sid    = "AWSCloudTrailAclCheck"
     effect = "Allow"
@@ -98,8 +101,13 @@ resource "aws_cloudtrail" "main" {
   enable_log_file_validation    = true
 }
 
-# 3. GuardDuty
+# 3. GuardDuty — OPT-IN ONLY.
+# GuardDuty is the only resource in this lab that can incur charges (its 30-day
+# free trial aside). It is disabled by default so the lab costs $0. Enable with
+# `terraform apply -var enable_guardduty=true` only if you accept the cost and
+# want the GuardDuty-based detection demo (scripts/guardduty_findings.py).
 resource "aws_guardduty_detector" "main" {
+  count  = var.enable_guardduty ? 1 : 0
   enable = true
 }
 
